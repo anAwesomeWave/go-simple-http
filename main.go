@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
 	"log"
@@ -8,7 +9,7 @@ import (
 	"time"
 )
 
-var NAME_TO_AGE_MAP = map[string]int8{"tim": 19, "kate": 18}
+var NAME_TO_AGE_MAP = map[string]uint8{"tim": 19, "kate": 18}
 
 func index(w http.ResponseWriter, req *http.Request) uint16 {
 	fmt.Fprintf(w, "It is an index Page\n")
@@ -81,12 +82,35 @@ func getAgebyQuery(w http.ResponseWriter, req *http.Request) uint16 {
 	return http.StatusOK
 }
 
+type Person struct {
+	Name string
+	Age  uint8
+}
+
 func postAgebyQuery(w http.ResponseWriter, req *http.Request) uint16 {
 	//nameToAgeMap := map[string]int8{"tim": 19, "kate": 18}
-	fmt.Fprintf(w, "detect POST method")
+	var p Person
+
+	err := json.NewDecoder(req.Body).Decode(&p)
+	log.Println(p.Age)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest) // before ServeFile
+		// quote: Changing the header map after a call to [ResponseWriter.WriteHeader] (or
+		// [ResponseWriter.Write]) has no effect unless the HTTP status code was of the
+		// 1xx class or the modified headers are trailers.
+		fmt.Fprintf(w, "Bad Request %s", err.Error())
+		return http.StatusBadRequest
+	}
+	if !(p.Name != "" && p.Age > 0 && p.Age < 100) { // simple data validation
+		fmt.Fprintf(w, "Bad Request %s", "wrong Fields values")
+		return http.StatusBadRequest
+	}
+
+	NAME_TO_AGE_MAP[p.Name] = p.Age
 	// read json from body
 	// name: string, age: int
-	return http.StatusOK
+	fmt.Fprint(w, "201 - Created")
+	return http.StatusCreated
 }
 
 func httpLoggingMiddleware(fn func(w http.ResponseWriter, req *http.Request) uint16) func(w http.ResponseWriter, req *http.Request) {
