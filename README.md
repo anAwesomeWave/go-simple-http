@@ -3,7 +3,7 @@
 ## Изучаю Go 
 
 ## next steps:
-- logger
+- logger ✔️
 - sqlite
 - docker
 - postgres
